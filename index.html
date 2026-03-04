@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>拡張メモ・カレンダー</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; display: flex; justify-content: center; padding: 20px; }
+        .calendar-container { background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 100%; max-width: 900px; overflow: hidden; }
+        
+        .header { background: #333; color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
+        .header button { background: #555; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        #monthYear { font-size: 1.2rem; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background: #eee; padding: 10px 0; border-bottom: 2px solid #ddd; }
+        
+        /* 曜日の色（ヘッダー） */
+        .sun-text { color: #ff4d4d; }
+        .sat-text { color: #4d94ff; }
+
+        td { border: 1px solid #eee; transition: all 0.3s ease; height: 80px; vertical-align: top; position: relative; }
+        
+        /* 数字のデザインと色分け */
+        .day-num { 
+            display: inline-block; width: 30px; height: 30px; line-height: 30px; 
+            text-align: center; cursor: pointer; font-weight: bold; margin: 5px; border-radius: 50%;
+        }
+        .td-sun .day-num { color: #ff4d4d; } /* 日曜の数字を赤 */
+        .td-sat .day-num { color: #4d94ff; } /* 土曜の数字を青 */
+        .day-num:hover { background: #eee; }
+
+        /* メモエリア */
+        .memo-input { 
+            width: 92%; height: 40px; margin: 0 4%; border: none; border-radius: 4px;
+            font-size: 0.75rem; background: #f9f9f9; outline: none; resize: none;
+            display: block; transition: all 0.3s ease;
+        }
+
+        /* 広がった時のスタイル */
+        .expanded { height: 180px; background: #fffdeb; }
+        .expanded .memo-input { height: 130px; background: white; border: 1px solid #ddd; font-size: 0.9rem; }
+        .expanded .day-num { background: #333; color: white !important; }
+
+        .today-mark { background: #ffeb3b; }
+    </style>
+</head>
+<body>
+
+<div class="calendar-container">
+    <div class="header">
+        <button onclick="changeMonth(-1)">◀ 前月</button>
+        <div id="monthYear"></div>
+        <button onclick="changeMonth(1)">次月 ▶</button>
+    </div>
+    <table id="calendarTable">
+        <thead>
+            <tr>
+                <th class="sun-text">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat-text">土</th>
+            </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+    </table>
+</div>
+
+<script>
+    let currentViewDate = new Date();
+    let expandedColIndex = -1; 
+
+    function render() {
+        const year = currentViewDate.getFullYear();
+        const month = currentViewDate.getMonth();
+        const today = new Date();
+        document.getElementById('monthYear').innerText = `${year}年 ${month + 1}月`;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+        const body = document.getElementById('calendarBody');
+        body.innerHTML = '';
+
+        let dateCount = 1;
+        for (let i = 0; i < 6; i++) {
+            let row = document.createElement('tr');
+            for (let j = 0; j < 7; j++) {
+                let cell = document.createElement('td');
+                
+                // 土日のクラス判定
+                if (j === 0) cell.classList.add('td-sun');
+                if (j === 6) cell.classList.add('td-sat');
+                if (j === expandedColIndex) cell.classList.add('expanded');
+
+                if (!(i === 0 && j < firstDay) && dateCount <= lastDate) {
+                    const d = dateCount;
+                    const key = `note-${year}-${month+1}-${d}`;
+                    const isToday = (year === today.getFullYear() && month === today.getMonth() && d === today.getDate());
+
+                    cell.innerHTML = `
+                        <div class="day-num ${isToday ? 'today-mark' : ''}" onclick="toggleCol(${j})">${d}</div>
+                        <textarea id="${key}" class="memo-input" placeholder="予定..." 
+                                  oninput="localStorage.setItem('${key}', this.value)">${localStorage.getItem(key) || ''}</textarea>
+                    `;
+                    dateCount++;
+                }
+                row.appendChild(cell);
+            }
+            body.appendChild(row);
+            if (dateCount > lastDate) break;
+        }
+    }
+
+    function toggleCol(index) {
+        expandedColIndex = (expandedColIndex === index) ? -1 : index;
+        render();
+    }
+
+    function changeMonth(diff) {
+        currentViewDate.setMonth(currentViewDate.getMonth() + diff);
+        expandedColIndex = -1;
+        render();
+    }
+
+    render();
+</script>
+
+</body>
+</html>
